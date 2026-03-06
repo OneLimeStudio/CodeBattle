@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: testdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  web:
+    build: .
+    container_name: fastapi_app
+    restart: always
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+    env_file: .env
+
+  worker:
+    build: .
+    command: celery -A app.worker.task:cel worker --loglevel=info
+    restart: always
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - .:/app
+    env_file: .env
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+
+volumes:
+  postgres_data:
