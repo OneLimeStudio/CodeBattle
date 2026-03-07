@@ -106,7 +106,7 @@ def run_in_sandbox(code: str, lang: str, stdin: str, expected) -> dict:
 
     with tempfile.NamedTemporaryFile(suffix=lang_suffix(lang), mode='w', delete=False) as f:
         if lang == "python":
-            code = wrap_python(code, None)
+            code = wrap_python(code)
 
         f.write(code)
         fname = f.name
