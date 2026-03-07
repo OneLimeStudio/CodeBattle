@@ -85,8 +85,33 @@ def judge_submission(code: str, language: str, match_id: str, test_cases: list):
         raise e
     finally:
         db.close()
+def detect_function_name(code: str):
+    """Return the first top-level function name, or None if code is a plain script."""
+    import ast
+    try:
+        tree = ast.parse(code)
+        for node in tree.body:
+            if isinstance(node, ast.FunctionDef):
+                return node.name
+    except SyntaxError:
+        pass
+    return None
+
+
 def wrap_python(code: str):
-    return f"""
+    fn_name = detect_function_name(code)
+
+    if fn_name is None:
+        # Plain script: inject input data via patched input() and run as-is
+        return """
+import json, builtins as _builtins
+
+_input_data = json.loads(_builtins.input())
+_builtins.input = lambda *a: json.dumps(_input_data)
+
+""" + code
+    else:
+        return f"""
 import json
 
 {code}
@@ -94,11 +119,11 @@ import json
 data = json.loads(input())
 
 if isinstance(data, dict):
-    result = solution(**data)
+    result = {fn_name}(**data)
 elif isinstance(data, list):
-    result = solution(*data)
+    result = {fn_name}(*data)
 else:
-    result = solution(data)
+    result = {fn_name}(data)
 
 print(json.dumps(result))
 """
