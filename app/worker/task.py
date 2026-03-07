@@ -9,13 +9,9 @@ from .. import models
 from ..database import SessionLocal
 from sqlalchemy.orm import Session
 
-cel = Celery(
-    "tasks",
-    broker="redis://redis:6379/0",
-    backend="redis://redis:6379/0"
-)
-
-
+import os
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+cel = Celery("tasks", broker=REDIS_URL, backend=REDIS_URL)
 @cel.task
 def judge_submission(code: str, language: str, match_id: str, test_cases: list):
     results = []
