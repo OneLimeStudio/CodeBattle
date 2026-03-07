@@ -11,7 +11,7 @@ from .schemas import SubmissionRequest, UserCreate, LoginRequest
 from .worker import task
 from typing import Optional
 from .middleware import MiddleWare
-
+from .database import SessionLocal, engine, Base
 
 lock = Lock()
 default_elo = 1000
@@ -47,6 +47,12 @@ def get_random_problem(db: Session):
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
+from . import models  # ensure models are imported
+
+@app.on_event("startup")
+def create_tables():
+    Base.metadata.create_all(bind=engine)
+
 
 @app.post("/users/")
 def create_user(body: UserCreate, db: Session = Depends(get_db)):
