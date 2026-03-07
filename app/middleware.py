@@ -10,21 +10,17 @@ import time
 
 RATE_LIMIT = 5
 WINDOW = 10  # seconds
+import os
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://redis:6379/0")
+
 try:
-    
-
-    r = redis.Redis(
-        host="redis",
-        port=6379,
-        db=0,
-        decode_responses=True
-    )
-
-    r.set("hello", "world")
-    print(r.get("hello"))
-
-except redis.exceptions.ConnectionError as e:
-    print(f"Error connecting to Redis: {e}")
+    r = redis.Redis.from_url(REDIS_URL, decode_responses=True)
+    r.ping()
+    print("Redis connected")
+except Exception as e:
+    print(f"Redis unavailable: {e}")
+    r = None
 
 
 class MiddleWare(BaseHTTPMiddleware):
