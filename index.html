@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CodeBattle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0f;
+    --bg1: #111118;
+    --bg2: #18181f;
+    --bg3: #22222c;
+    --border: #2a2a38;
+    --border2: #3a3a50;
+    --text: #e8e8f0;
+    --text2: #9090b0;
+    --text3: #5a5a7a;
+    --accent: #7c6af5;
+    --accent2: #5b4de0;
+    --accent3: #a594ff;
+    --green: #3ddc84;
+    --red: #ff5c5c;
+    --yellow: #ffc857;
+    --cyan: #5ce8f0;
+  }
+
+  html, body, #root { height: 100%; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg1); }
+  ::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+  /* ── Layout ── */
+  .app { height: 100%; display: flex; flex-direction: column; }
+  
+  /* ── Nav ── */
+  .nav {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; height: 52px;
+    background: var(--bg1);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .nav-logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px; font-weight: 800;
+    letter-spacing: -0.5px;
+    background: linear-gradient(135deg, var(--accent3), var(--cyan));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  }
+  .nav-logo span { color: var(--red); -webkit-text-fill-color: var(--red); }
+  .nav-right { display: flex; align-items: center; gap: 12px; }
+  .nav-user { color: var(--text2); font-size: 12px; }
+  
+  /* ── Buttons ── */
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 8px 16px; border-radius: 6px; border: none; cursor: pointer;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 500;
+    transition: all 0.15s ease; letter-spacing: 0.3px; white-space: nowrap;
+  }
+  .btn-primary {
+    background: var(--accent); color: #fff;
+  }
+  .btn-primary:hover { background: var(--accent2); transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-ghost {
+    background: transparent; color: var(--text2);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--border2); color: var(--text); }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-danger:hover { background: #e04040; }
+  .btn-success { background: var(--green); color: #0a0a0f; }
+  .btn-success:hover { background: #2fbf6e; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+  .btn-sm { padding: 5px 10px; font-size: 11px; }
+  .btn-lg { padding: 12px 24px; font-size: 14px; }
+  
+  /* ── Auth Page ── */
+  .auth-page {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(ellipse at 20% 50%, rgba(124,106,245,0.08) 0%, transparent 60%),
+                radial-gradient(ellipse at 80% 20%, rgba(92,232,240,0.05) 0%, transparent 50%),
+                var(--bg);
+  }
+  .auth-card {
+    width: 420px; padding: 40px;
+    background: var(--bg1); border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .auth-title {
+    font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800;
+    margin-bottom: 6px;
+  }
+  .auth-subtitle { color: var(--text2); font-size: 12px; margin-bottom: 32px; }
+  .auth-tabs {
+    display: flex; gap: 4px; margin-bottom: 28px;
+    background: var(--bg2); padding: 4px; border-radius: 8px;
+  }
+  .auth-tab {
+    flex: 1; padding: 8px; text-align: center; cursor: pointer;
+    border-radius: 6px; font-size: 12px; color: var(--text2);
+    transition: all 0.15s;
+  }
+  .auth-tab.active { background: var(--accent); color: #fff; }
+  .leaderboard-page { padding: 24px; }
+  .lb-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px; background: var(--bg1); border: 1px solid var(--border);
+    border-radius: 8px; margin-bottom: 6px;
+  }
+  .lb-row:hover { border-color: var(--border2); background: var(--bg2); }
+  .lb-rank { color: var(--text3); font-size: 12px; width: 32px; }
+  .lb-rank.top { color: var(--yellow); font-weight: 700; }
+  .lb-elo { color: var(--accent3); font-weight: 600; font-size: 13px; }
+  /* ── Form ── */
+  .form-group { margin-bottom: 16px; }
+  .form-label { display: block; font-size: 11px; color: var(--text2); margin-bottom: 6px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .form-input {
+    width: 100%; padding: 10px 14px;
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text);
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    transition: border-color 0.15s;
+    outline: none;
+  }
+  .form-input:focus { border-color: var(--accent); }
+  .form-input::placeholder { color: var(--text3); }
+  .form-error { color: var(--red); font-size: 11px; margin-top: 12px; }
+  
+  /* ── Main layout ── */
+  .main { flex: 1; display: flex; overflow: hidden; }
+  
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 240px; flex-shrink: 0;
+    background: var(--bg1); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    overflow-y: auto;
+  }
+  .sidebar-section { padding: 16px; border-bottom: 1px solid var(--border); }
+  .sidebar-label { font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); margin-bottom: 10px; }
+  .sidebar-btn {
+    display: flex; align-items: center; gap: 8px;
+    width: 100%; padding: 9px 12px; margin-bottom: 4px;
+    background: transparent; border: none; border-radius: 6px; cursor: pointer;
+    color: var(--text2); font-family: 'JetBrains Mono', monospace; font-size: 12px;
+    text-align: left; transition: all 0.12s;
+  }
+  .sidebar-btn:hover { background: var(--bg2); color: var(--text); }
+  .sidebar-btn.active { background: rgba(124,106,245,0.15); color: var(--accent3); }
+  .sidebar-icon { font-size: 14px; }
+  
+  /* ── Content ── */
+  .content { flex: 1; overflow-y: auto; }
+  
+  /* ── Problems List ── */
+  .problems-page { padding: 24px; }
+  .page-title {
+    font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .page-sub { color: var(--text2); font-size: 12px; margin-bottom: 24px; }
+  .problem-grid { display: flex; flex-direction: column; gap: 8px; }
+  .problem-card {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; background: var(--bg1); border: 1px solid var(--border);
+    border-radius: 8px; cursor: pointer; transition: all 0.15s;
+  }
+  .problem-card:hover { border-color: var(--border2); background: var(--bg2); transform: translateX(3px); }
+  .problem-left { display: flex; align-items: center; gap: 14px; }
+  .problem-num { color: var(--text3); font-size: 12px; width: 28px; }
+  .problem-name { font-weight: 500; font-size: 13px; }
+  .problem-right { display: flex; align-items: center; gap: 12px; }
+  .badge {
+    padding: 3px 10px; border-radius: 99px; font-size: 10px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.5px;
+  }
+  .badge-easy { background: rgba(61,220,132,0.12); color: var(--green); }
+  .badge-medium { background: rgba(255,200,87,0.12); color: var(--yellow); }
+  .badge-hard { background: rgba(255,92,92,0.12); color: var(--red); }
+  
+  /* ── Split View (Problem + Editor) ── */
+  .split-view { display: flex; height: 100%; }
+  .split-left {
+    width: 42%; border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .split-right { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 20px; background: var(--bg1); border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .panel-title { font-size: 12px; font-weight: 500; color: var(--text2); letter-spacing: 0.5px; }
+  .panel-body { flex: 1; overflow-y: auto; padding: 20px; }
+  
+  /* Problem description */
+  .prob-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+  .prob-desc { color: var(--text2); line-height: 1.8; font-size: 13px; }
+  .prob-section { margin-top: 20px; }
+  .prob-section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text3); margin-bottom: 8px; }
+  .test-case {
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 6px;
+    padding: 12px; margin-bottom: 8px; font-size: 12px; color: var(--cyan);
+  }
+  .test-case-label { color: var(--text3); margin-bottom: 4px; font-size: 11px; }
+  
+  /* Code editor area */
+  .editor-area {
+    flex: 1; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .lang-select {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: 5px; color: var(--text2);
+    font-family: 'JetBrains Mono', monospace; font-size: 11px;
+    padding: 4px 8px; cursor: pointer; outline: none;
+  }
+  .code-textarea {
+    flex: 1; width: 100%; resize: none;
+    background: var(--bg); border: none; outline: none;
+    color: var(--text); font-family: 'JetBrains Mono', monospace;
+    font-size: 13px; line-height: 1.7; padding: 20px;
+    tab-size: 4;
+  }
+  
+  /* ── Result Panel ── */
+  .result-overlay {
+    position: fixed; inset: 0; z-index: 100;
+    background: rgba(0,0,0,0.8);
+    display: flex; align-items: center; justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .result-card {
+    width: 480px; background: var(--bg1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 36px; text-align: center;
+    animation: slideUp 0.3s ease;
+  }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .result-icon { font-size: 52px; margin-bottom: 16px; }
+  .result-title { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; margin-bottom: 8px; }
+  .result-title.win { color: var(--green); }
+  .result-title.lose { color: var(--red); }
+  .result-title.pending { color: var(--yellow); }
+  .result-sub { color: var(--text2); font-size: 13px; margin-bottom: 24px; }
+  .result-table { width: 100%; margin-bottom: 24px; border-collapse: collapse; }
+  .result-table td { padding: 8px 12px; font-size: 12px; border-bottom: 1px solid var(--border); }
+  .result-table td:first-child { color: var(--text2); text-align: left; }
+  .result-table td:last-child { text-align: right; font-weight: 500; }
+  
+  /* ── Queue / Matchmaking ── */
+  .queue-page {
+    flex: 1; display: flex; align-items: center; justify-content: center;
+  }
+  .queue-card {
+    width: 480px; text-align: center;
+    background: var(--bg1); border: 1px solid var(--border);
+    border-radius: 12px; padding: 48px;
+  }
+  .queue-title { font-family: 'Syne', sans-serif; font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+  .queue-sub { color: var(--text2); font-size: 13px; margin-bottom: 32px; }
+  .queue-spinner {
+    width: 56px; height: 56px; margin: 0 auto 24px;
+    border: 3px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .pulse { animation: pulse 2s ease-in-out infinite; }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+  
+  /* ── Toast ── */
+  .toast-container {
+    position: fixed; bottom: 24px; right: 24px; z-index: 200;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .toast {
+    padding: 12px 18px; border-radius: 8px; font-size: 12px;
+    border: 1px solid; max-width: 320px;
+    animation: slideIn 0.2s ease;
+  }
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  .toast-success { background: rgba(61,220,132,0.1); border-color: rgba(61,220,132,0.3); color: var(--green); }
+  .toast-error { background: rgba(255,92,92,0.1); border-color: rgba(255,92,92,0.3); color: var(--red); }
+  .toast-info { background: rgba(124,106,245,0.1); border-color: rgba(124,106,245,0.3); color: var(--accent3); }
+  
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 2px; background: var(--bg2); padding: 3px; border-radius: 7px; }
+  .tab {
+    flex: 1; padding: 7px 14px; text-align: center; cursor: pointer;
+    border-radius: 5px; font-size: 11px; color: var(--text2);
+    transition: all 0.12s;
+  }
+  .tab.active { background: var(--bg3); color: var(--text); }
+
+  /* ── Status dot ── */
+  .status-dot {
+    display: inline-block; width: 7px; height: 7px;
+    border-radius: 50%; margin-right: 6px;
+  }
+  .dot-green { background: var(--green); box-shadow: 0 0 6px var(--green); }
+  .dot-yellow { background: var(--yellow); animation: pulse 1.5s ease infinite; }
+  .dot-red { background: var(--red); }
+  
+  /* ── Match header ── */
+  .match-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px; background: var(--bg2); border-bottom: 1px solid var(--border);
+    flex-shrink: 0; gap: 16px;
+  }
+  .match-player-pill {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 14px; border-radius: 6px; background: var(--bg1);
+    border: 1px solid var(--border); font-size: 12px;
+  }
+  .match-vs { color: var(--text3); font-weight: 700; font-size: 11px; }
+  .verdict-pill {
+    padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; text-transform: uppercase;
+  }
+  .verdict-accepted { background: rgba(61,220,132,0.15); color: var(--green); }
+  .verdict-wrong { background: rgba(255,92,92,0.15); color: var(--red); }
+  .verdict-pending { background: rgba(255,200,87,0.1); color: var(--yellow); }
+  .verdict-tle { background: rgba(255,200,87,0.1); color: var(--yellow); }
+
+  /* ── Home Page ── */
+  .home-page {
+    padding: 48px 40px; max-width: 760px;
+    background: radial-gradient(ellipse at 80% 0%, rgba(124,106,245,0.06) 0%, transparent 50%),
+                var(--bg);
+  }
+  .home-hero { margin-bottom: 48px; }
+  .home-greeting { color: var(--text3); font-size: 12px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .home-title { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; line-height: 1.1; margin-bottom: 12px; }
+  .home-title span { color: var(--accent3); }
+  .home-desc { color: var(--text2); font-size: 13px; max-width: 500px; }
+  .home-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .home-card {
+    padding: 20px; background: var(--bg1); border: 1px solid var(--border);
+    border-radius: 10px; cursor: pointer; transition: all 0.15s;
+  }
+  .home-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+  .home-card-icon { font-size: 24px; margin-bottom: 10px; }
+  .home-card-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 4px; }
+  .home-card-desc { color: var(--text2); font-size: 12px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
+
+const API = 'https://codebattle-production-9995.up.railway.app';
+
+// ── API helper ────────────────────────────────────────────────────────────────
+async function api(method, path, body, token) {
+  const headers = { 'Content-Type': 'application/json' };
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+  const res = await fetch(API + path, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.detail || 'Request failed');
+  return data;
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function Toast({ toasts }) {
+  return (
+    <div className="toast-container">
+      {toasts.map(t => (
+        <div key={t.id} className={`toast toast-${t.type}`}>{t.msg}</div>
+      ))}
+    </div>
+  );
+}
+
+function useToasts() {
+  const [toasts, setToasts] = useState([]);
+  const toast = useCallback((msg, type = 'info') => {
+    const id = Date.now();
+    setToasts(p => [...p, { id, msg, type }]);
+    setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3500);
+  }, []);
+  return { toasts, toast };
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+function AuthPage({ onLogin, toast }) {
+  const [tab, setTab] = useState('login');
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState('');
+  const [form, setForm] = useState({ name: '', email: '', password: '' });
+
+  const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
+
+  async function submit() {
+    setErr(''); setLoading(true);
+    try {
+      if (tab === 'login') {
+        const data = await api('POST', '/login', { email: form.email, password: form.password });
+        onLogin(data.access_token, data.user);
+        toast('Welcome back!', 'success');
+      } else {
+        await api('POST', '/users/', { name: form.name, email: form.email, password: form.password });
+        const data = await api('POST', '/login', { email: form.email, password: form.password });
+        onLogin(data.access_token, data.user);
+        toast('Account created!', 'success');
+      }
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-title">CodeBattle</div>
+        <div className="auth-subtitle">// competitive coding arena</div>
+        <div className="auth-tabs">
+          {['login', 'register'].map(t => (
+            <div key={t} className={`auth-tab ${tab === t ? 'active' : ''}`}
+              onClick={() => { setTab(t); setErr(''); }}>
+              {t === 'login' ? '→ Sign In' : '+ Register'}
+            </div>
+          ))}
+        </div>
+        {tab === 'register' && (
+          <div className="form-group">
+            <label className="form-label">Name</label>
+            <input className="form-input" placeholder="Alice" value={form.name} onChange={set('name')} />
+          </div>
+        )}
+        <div className="form-group">
+          <label className="form-label">Email</label>
+          <input className="form-input" type="email" placeholder="alice@example.com" value={form.email} onChange={set('email')} />
+        </div>
+        <div className="form-group">
+          <label className="form-label">Password</label>
+          <input className="form-input" type="password" placeholder="••••••••" value={form.password} onChange={set('password')}
+            onKeyDown={e => e.key === 'Enter' && submit()} />
+        </div>
+        {err && <div className="form-error">⚠ {err}</div>}
+        <button className="btn btn-primary btn-lg" style={{ width: '100%', marginTop: 20 }}
+          onClick={submit} disabled={loading}>
+          {loading ? 'Loading...' : tab === 'login' ? 'Sign In →' : 'Create Account →'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Problems List ─────────────────────────────────────────────────────────────
+function ProblemsPage({ token, onSelect, toast }) {
+  const [problems, setProblems] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api('GET', '/problems', null, token)
+      .then(setProblems)
+      .catch(e => toast(e.message, 'error'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const diffBadge = d => {
+    const c = d === 'Easy' ? 'easy' : d === 'Medium' ? 'medium' : 'hard';
+    return <span className={`badge badge-${c}`}>{d}</span>;
+  };
+
+  return (
+    <div className="problems-page">
+      <div className="page-title">Problems</div>
+      <div className="page-sub">// select a problem to practice or battle</div>
+      {loading ? (
+        <div style={{ color: 'var(--text3)', fontSize: 13 }}>Loading problems...</div>
+      ) : (
+        <div className="problem-grid">
+          {problems.map((p, i) => (
+            <div key={p.id} className="problem-card" onClick={() => onSelect(p)}>
+              <div className="problem-left">
+                <div className="problem-num">{String(i + 1).padStart(2, '0')}</div>
+                <div>
+                  <div className="problem-name">{p.title}</div>
+                </div>
+              </div>
+              <div className="problem-right">
+                {diffBadge(p.difficulty)}
+                <span style={{ color: 'var(--text3)', fontSize: 11 }}>→</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Code Editor + Problem Panel ───────────────────────────────────────────────
+const STARTERS = {
+  python: `def solution():\n    # Write your solution here\n    pass\n`,
+  javascript: `function solution() {\n    // Write your solution here\n}\n`,
+  cpp: `#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write your solution here\n    return 0;\n}\n`,
+  java: `public class Solution {\n    public static void main(String[] args) {\n        // Write your solution here\n    }\n}\n`,
+};
+
+function SolveView({ problem, token, user, matchId, matchPlayers, mode, toast, onBack, onResult }) {
+  const [code, setCode] = useState(STARTERS['python']);
+  const [lang, setLang] = useState('python');
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState(null);
+  const [activeTab, setActiveTab] = useState('code'); // 'code' | 'result'
+  const [submissions, setSubmissions] = useState([]); // history of all submits
+  const pollRef = useRef(null);
+
+  useEffect(() => {
+    setCode(STARTERS[lang] || '');
+  }, [lang]);
+
+  function startPolling(matchIdToUse) {
+    let attempts = 0;
+    pollRef.current = setInterval(async () => {
+      attempts++;
+      try {
+        const path = `/match/${matchIdToUse}/result/${user.id}`;
+        const data = await api('GET', path, null, token);
+        if (data.my_verdict && data.my_verdict !== 'pending') {
+          clearInterval(pollRef.current);
+          setResult(data);
+          setSubmitting(false);
+          setActiveTab('result');
+          setSubmissions(prev => [{ ...data, submittedAt: new Date() }, ...prev]);
+          if (onResult) onResult(data);
+        }
+        if (attempts > 45) {
+          clearInterval(pollRef.current);
+          setSubmitting(false);
+          toast('Worker did not respond in 90s — check Celery logs', 'error');
+          setActiveTab('result');
+          setSubmissions(prev => [{ my_verdict: 'timeout', submittedAt: new Date() }, ...prev]);
+        }
+      } catch (e) {
+        if (attempts > 45) {
+          clearInterval(pollRef.current);
+          setSubmitting(false);
+          toast(e.message, 'error');
+        }
+      }
+    }, 2000);
+  }
+
+  useEffect(() => () => clearInterval(pollRef.current), []);
+
+  async function handleSubmit() {
+    setSubmitting(true);
+    setResult(null);
+    try {
+      const endpoint = mode === 'practice'
+        ? `/practice/${problem.id}/submit`
+        : `/match/${matchId}/submit`;
+      const data = await api('POST', endpoint, { code, language: lang }, token);
+      toast('Submitted! Waiting for judge...', 'info');
+      startPolling(data.match_id);
+    } catch (e) {
+      setSubmitting(false);
+      toast(e.message, 'error');
+    }
+  }
+
+  const verdictMeta = v => {
+    if (v === 'accepted')  return { color: 'var(--green)',  icon: '✓', label: 'Accepted' };
+    if (v === 'wrong')     return { color: 'var(--red)',    icon: '✗', label: 'Wrong Answer' };
+    if (v === 'tle')       return { color: 'var(--yellow)', icon: '⏱', label: 'Time Limit Exceeded' };
+    if (v === 'pending')   return { color: 'var(--yellow)', icon: '…', label: 'Pending' };
+    return                        { color: 'var(--text3)',  icon: '?', label: v || 'Unknown' };
+  };
+
+  return (
+    <div className="split-view" style={{ height: '100%' }}>
+      {/* Left: Problem */}
+      <div className="split-left">
+        <div className="panel-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <button className="btn btn-ghost btn-sm" onClick={onBack}>← Back</button>
+            <span className="panel-title">{problem.title}</span>
+          </div>
+          <span className={`badge badge-${(problem.difficulty||'').toLowerCase()}`}>{problem.difficulty}</span>
+        </div>
+        <div className="panel-body">
+          <div className="prob-desc" style={{ whiteSpace: 'pre-wrap' }}>{problem.description}</div>
+        </div>
+      </div>
+
+      {/* Right: Editor + Results */}
+      <div className="split-right">
+        {/* Match player bar */}
+        {mode === 'match' && matchPlayers && (
+          <div className="match-header">
+            {matchPlayers.map((p, i) => (
+              <React.Fragment key={p.user_id}>
+                <div className="match-player-pill">
+                  <span className={`status-dot ${p.verdict === 'accepted' ? 'dot-green' : p.verdict === 'pending' ? 'dot-yellow' : 'dot-red'}`} />
+                  <span style={{ fontWeight: p.user_id === user.id ? 600 : 400 }}>{p.name}</span>
+                  {p.verdict !== 'pending' && (
+                    <span className={`verdict-pill verdict-${p.verdict}`}>{p.verdict}</span>
+                  )}
+                </div>
+                {i < matchPlayers.length - 1 && <div className="match-vs">VS</div>}
+              </React.Fragment>
+            ))}
+          </div>
+        )}
+
+        {/* Tab bar + controls */}
+        <div className="panel-header" style={{ gap: 12 }}>
+          <div style={{ display: 'flex', gap: 0, background: 'var(--bg2)', borderRadius: 7, padding: 3 }}>
+            <button
+              onClick={() => setActiveTab('code')}
+              style={{
+                padding: '6px 16px', border: 'none', borderRadius: 5, cursor: 'pointer',
+                fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 500,
+                background: activeTab === 'code' ? 'var(--bg3)' : 'transparent',
+                color: activeTab === 'code' ? 'var(--text)' : 'var(--text2)',
+                transition: 'all 0.12s',
+              }}>
+              ✎ Code
+            </button>
+            <button
+              onClick={() => setActiveTab('result')}
+              style={{
+                padding: '6px 16px', border: 'none', borderRadius: 5, cursor: 'pointer',
+                fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 500,
+                background: activeTab === 'result' ? 'var(--bg3)' : 'transparent',
+                color: activeTab === 'result' ? 'var(--text)' : 'var(--text2)',
+                transition: 'all 0.12s',
+                display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+              {submitting
+                ? <span style={{ color: 'var(--yellow)' }}>⏳ Judging...</span>
+                : result
+                  ? <span style={{ color: verdictMeta(result.my_verdict).color }}>
+                      {verdictMeta(result.my_verdict).icon} {verdictMeta(result.my_verdict).label}
+                    </span>
+                  : <span>◎ Result</span>
+              }
+            </button>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 'auto' }}>
+            <select className="lang-select" value={lang} onChange={e => setLang(e.target.value)}>
+              <option value="python">Python</option>
+              <option value="javascript">JavaScript</option>
+              <option value="cpp">C++</option>
+              <option value="java">Java</option>
+            </select>
+            <button className="btn btn-success" onClick={handleSubmit} disabled={submitting}>
+              {submitting ? '⏳' : '▶ Submit'}
+            </button>
+          </div>
+        </div>
+
+        {/* Code tab */}
+        {activeTab === 'code' && (
+          <div className="editor-area">
+            <textarea
+              className="code-textarea"
+              value={code}
+              onChange={e => setCode(e.target.value)}
+              spellCheck={false}
+              onKeyDown={e => {
+                if (e.key === 'Tab') {
+                  e.preventDefault();
+                  const s = e.target.selectionStart;
+                  const v = e.target.value;
+                  setCode(v.slice(0, s) + '    ' + v.slice(e.target.selectionEnd));
+                  setTimeout(() => e.target.setSelectionRange(s + 4, s + 4), 0);
+                }
+              }}
+            />
+          </div>
+        )}
+
+        {/* Result tab */}
+        {activeTab === 'result' && (
+          <div style={{ flex: 1, overflow: 'auto', padding: 24 }}>
+            {submitting && !result && (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: 16, paddingTop: 60 }}>
+                <div className="queue-spinner" style={{ width: 40, height: 40 }} />
+                <div style={{ color: 'var(--text2)', fontSize: 13 }} className="pulse">Running test cases...</div>
+              </div>
+            )}
+
+            {!submitting && !result && (
+              <div style={{ color: 'var(--text3)', fontSize: 13, textAlign: 'center', paddingTop: 60 }}>
+                No submissions yet. Hit ▶ Submit to run your code.
+              </div>
+            )}
+
+            {result && (() => {
+              const v = result.my_verdict;
+              const meta = verdictMeta(v);
+              const isAccepted = v === 'accepted';
+              return (
+                <div>
+                  {/* Big verdict banner */}
+                  <div style={{
+                    display: 'flex', alignItems: 'center', gap: 16,
+                    padding: '20px 24px', borderRadius: 10, marginBottom: 20,
+                    background: isAccepted ? 'rgba(61,220,132,0.08)' : 'rgba(255,92,92,0.08)',
+                    border: `1px solid ${isAccepted ? 'rgba(61,220,132,0.25)' : 'rgba(255,92,92,0.25)'}`,
+                  }}>
+                    <div style={{ fontSize: 36 }}>{isAccepted ? '✅' : v === 'tle' ? '⏱️' : '❌'}</div>
+                    <div>
+                      <div style={{ fontSize: 18, fontWeight: 700, color: meta.color, fontFamily: 'Syne, sans-serif' }}>
+                        {meta.label}
+                      </div>
+                      <div style={{ fontSize: 12, color: 'var(--text2)', marginTop: 2 }}>
+                        {isAccepted
+                          ? 'All test cases passed.'
+                          : v === 'tle'
+                            ? 'Your solution exceeded the time limit on one or more test cases.'
+                            : 'Your output did not match expected on one or more test cases.'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Players comparison for match mode */}
+                  {result.players && result.players.length > 1 && (
+                    <div style={{ marginBottom: 20 }}>
+                      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--text3)', marginBottom: 10 }}>Match Results</div>
+                      {result.players.map(p => {
+                        const pm = verdictMeta(p.verdict);
+                        const isMe = p.user_id === user.id;
+                        return (
+                          <div key={p.user_id} style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '12px 16px', borderRadius: 8, marginBottom: 6,
+                            background: isMe ? 'rgba(124,106,245,0.08)' : 'var(--bg2)',
+                            border: `1px solid ${isMe ? 'rgba(124,106,245,0.25)' : 'var(--border)'}`,
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ fontSize: 12, fontWeight: isMe ? 700 : 400 }}>{p.name}</span>
+                              {isMe && <span style={{ fontSize: 10, color: 'var(--accent3)', background: 'rgba(124,106,245,0.15)', padding: '1px 6px', borderRadius: 4 }}>you</span>}
+                            </div>
+                            <span style={{ fontSize: 12, color: pm.color, fontWeight: 600 }}>
+                              {pm.icon} {pm.label}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Submission history */}
+                  {submissions.length > 1 && (
+                    <div>
+                      <div style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1, color: 'var(--text3)', marginBottom: 10 }}>Submission History</div>
+                      {submissions.map((s, i) => {
+                        const sm = verdictMeta(s.my_verdict);
+                        return (
+                          <div key={i} style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                            padding: '8px 14px', borderRadius: 6, marginBottom: 4,
+                            background: 'var(--bg2)', border: '1px solid var(--border)',
+                            opacity: i === 0 ? 1 : 0.6,
+                          }}>
+                            <span style={{ fontSize: 11, color: 'var(--text3)' }}>
+                              {i === 0 ? 'Latest' : `#${submissions.length - i}`}
+                            </span>
+                            <span style={{ fontSize: 11, color: sm.color }}>{sm.icon} {sm.label}</span>
+                            <span style={{ fontSize: 10, color: 'var(--text3)' }}>
+                              {s.submittedAt?.toLocaleTimeString()}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: 20, display: 'flex', gap: 8 }}>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setActiveTab('code')}>← Back to Editor</button>
+                    {!isAccepted && (
+                      <button className="btn btn-primary btn-sm" onClick={() => setActiveTab('code')}>Try Again</button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Result Card ───────────────────────────────────────────────────────────────
+function ResultCard({ result, user, onClose }) {
+  const myResult = result.players?.find(p => p.user_id === user.id);
+  const verdict = myResult?.verdict || result.my_verdict;
+  const isWin = verdict === 'accepted';
+  const isLose = verdict === 'wrong' || verdict === 'tle';
+
+  const emoji = isWin ? '🏆' : isLose ? '💀' : '⏳';
+  const title = isWin ? 'Accepted!' : verdict === 'tle' ? 'Time Limit Exceeded' : isLose ? 'Wrong Answer' : 'Pending...';
+  const cls = isWin ? 'win' : isLose ? 'lose' : 'pending';
+
+  return (
+    <div className="result-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="result-card">
+        <div className="result-icon">{emoji}</div>
+        <div className={`result-title ${cls}`}>{title}</div>
+        <div className="result-sub">
+          {isWin ? 'All test cases passed. Great work!' :
+           verdict === 'tle' ? 'Your solution exceeded the time limit.' :
+           isLose ? 'Some test cases failed. Try again.' : 'Still waiting for judge...'}
+        </div>
+        {result.players && result.players.length > 1 && (
+          <table className="result-table">
+            <tbody>
+              {result.players.map(p => (
+                <tr key={p.user_id}>
+                  <td>{p.name}{p.user_id === user.id ? ' (you)' : ''}</td>
+                  <td>
+                    <span className={`verdict-pill verdict-${p.verdict}`}>{p.verdict}</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        <button className="btn btn-ghost" onClick={onClose}>← Back to Problems</button>
+      </div>
+    </div>
+  );
+}
+function LeaderboardPage({ token, user, toast }) {
+  const [players, setPlayers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api('GET', '/leaderboard', null, token)
+      .then(setPlayers)
+      .catch(e => toast(e.message, 'error'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div className="leaderboard-page">
+      <div className="page-title">Leaderboard</div>
+      <div className="page-sub">// top players by ELO</div>
+      {loading ? (
+        <div style={{ color: 'var(--text3)', fontSize: 13 }}>Loading...</div>
+      ) : (
+        players.map((p, i) => (
+          <div key={p.id} className="lb-row">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+              <div className={`lb-rank ${i < 3 ? 'top' : ''}`}>
+                {i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `#${i + 1}`}
+              </div>
+              <div style={{ fontSize: 13, fontWeight: p.id === user.id ? 700 : 400 }}>
+                {p.name}
+                {p.id === user.id && <span style={{ fontSize: 10, color: 'var(--accent3)', marginLeft: 8, background: 'rgba(124,106,245,0.15)', padding: '1px 6px', borderRadius: 4 }}>you</span>}
+              </div>
+            </div>
+            <div className="lb-elo">{p.elo} ELO</div>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+// ── Matchmaking Queue ─────────────────────────────────────────────────────────
+function QueuePage({ token, user, toast, onMatchFound }) {
+  const [status, setStatus] = useState('idle'); // idle | waiting | matched
+  const [matchData, setMatchData] = useState(null);
+  const pollRef = useRef(null);
+
+  async function joinQueue() {
+    setStatus('waiting');
+    try {
+      const data = await api('POST', '/queue/join?elo=1000', null, token);
+      if (data.status === 'matched') {
+        setStatus('matched');
+        setMatchData(data);
+        toast('Match found! 🔥', 'success');
+        // fetch full match data
+        const match = await api('GET', `/match/${data.match_id}`, null, token);
+        onMatchFound(match);
+      } else {
+        // Poll
+        pollRef.current = setInterval(async () => {
+          try {
+            const d = await api('GET', '/queue/status', null, token);
+            if (d.status === 'matched') {
+              clearInterval(pollRef.current);
+              setStatus('matched');
+              toast('Match found! 🔥', 'success');
+              const match = await api('GET', `/match/${d.match_id}`, null, token);
+              onMatchFound(match);
+            }
+          } catch (e) { /* keep polling */ }
+        }, 3000);
+      }
+    } catch (e) {
+      setStatus('idle');
+      toast(e.message, 'error');
+    }
+  }
+
+  async function leaveQueue() {
+    clearInterval(pollRef.current);
+    try { await api('DELETE', '/queue/leave', null, token); } catch {}
+    setStatus('idle');
+  }
+
+  useEffect(() => () => clearInterval(pollRef.current), []);
+
+  return (
+    <div className="content" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="queue-card">
+        {status === 'idle' && (
+          <>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>⚔️</div>
+            <div className="queue-title">Battle Arena</div>
+            <div className="queue-sub">Get matched with a player of similar skill and race to solve the problem first.</div>
+            <button className="btn btn-primary btn-lg" onClick={joinQueue}>Find Match →</button>
+          </>
+        )}
+        {status === 'waiting' && (
+          <>
+            <div className="queue-spinner" />
+            <div className="queue-title">Finding Opponent...</div>
+            <div className="queue-sub pulse">Searching for a worthy challenger</div>
+            <button className="btn btn-ghost" onClick={leaveQueue}>Cancel</button>
+          </>
+        )}
+        {status === 'matched' && (
+          <>
+            <div style={{ fontSize: 48, marginBottom: 16 }}>🔥</div>
+            <div className="queue-title">Match Found!</div>
+            <div className="queue-sub">Loading match...</div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Home Page ─────────────────────────────────────────────────────────────────
+function HomePage({ user, onNavigate }) {
+  return (
+    <div className="content">
+      <div className="home-page">
+        <div className="home-hero">
+          <div className="home-greeting">// welcome back</div>
+          <div className="home-title">Hello, <span>{user.name}</span>.</div>
+          <div className="home-desc">Ready to code? Practice problems or jump into a live battle against another player.</div>
+        </div>
+        <div className="home-cards">
+          <div className="home-card" onClick={() => onNavigate('problems')}>
+            <div className="home-card-icon">📋</div>
+            <div className="home-card-title">Practice</div>
+            <div className="home-card-desc">Solve problems at your own pace. All difficulties available.</div>
+          </div>
+          <div className="home-card" onClick={() => onNavigate('queue')}>
+            <div className="home-card-icon">⚔️</div>
+            <div className="home-card-title">Battle</div>
+            <div className="home-card-desc">Get matched with an opponent. Race to solve it first.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main App ──────────────────────────────────────────────────────────────────
+function App() {
+  const [token, setToken] = useState(() => localStorage.getItem('cb_token'));
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('cb_user')); } catch { return null; }
+  });
+  const [page, setPage] = useState('home');
+  const [selectedProblem, setSelectedProblem] = useState(null);
+  const [activeMatch, setActiveMatch] = useState(null);
+  const { toasts, toast } = useToasts();
+
+  function onLogin(t, u) {
+    setToken(t); setUser(u);
+    localStorage.setItem('cb_token', t);
+    localStorage.setItem('cb_user', JSON.stringify(u));
+    setPage('home');
+  }
+
+  function logout() {
+    setToken(null); setUser(null);
+    localStorage.removeItem('cb_token');
+    localStorage.removeItem('cb_user');
+    setPage('home');
+  }
+
+  function selectProblem(p) {
+    setSelectedProblem(p);
+    setActiveMatch(null);
+    setPage('solve-practice');
+  }
+
+  function onMatchFound(match) {
+    setActiveMatch(match);
+    setSelectedProblem(match.problem);
+    setPage('solve-match');
+  }
+
+  if (!token || !user) {
+    return (
+      <div className="app">
+        <AuthPage onLogin={onLogin} toast={toast} />
+        <Toast toasts={toasts} />
+      </div>
+    );
+  }
+
+  const isSolving = page === 'solve-practice' || page === 'solve-match';
+
+  return (
+    <div className="app">
+      <nav className="nav">
+        <div className="nav-logo">Code<span>Battle</span></div>
+        <div className="nav-right">
+          <span className="nav-user">// {user.name}</span>
+          <button className="btn btn-ghost btn-sm" onClick={logout}>Sign Out</button>
+        </div>
+      </nav>
+
+      <div className="main">
+        {/* Sidebar — hidden while solving */}
+        {!isSolving && (
+          <div className="sidebar">
+            <div className="sidebar-section">
+              <div className="sidebar-label">Navigate</div>
+              {[
+                { key: 'home', icon: '⌂', label: 'Home' },
+                { key: 'problems', icon: '#', label: 'Problems' },
+                { key: 'queue', icon: '⚔', label: 'Battle' },
+                { key: 'leaderboard', icon: '🏆', label: 'Leaderboard' },
+              ].map(item => (
+                <button key={item.key}
+                  className={`sidebar-btn ${page === item.key ? 'active' : ''}`}
+                  onClick={() => setPage(item.key)}>
+                  <span className="sidebar-icon">{item.icon}</span>
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Content */}
+        {page === 'home' && <HomePage user={user} onNavigate={setPage} />}
+        
+        {page === 'problems' && (
+          <div className="content">
+            <ProblemsPage token={token} onSelect={selectProblem} toast={toast} />
+          </div>
+        )}
+
+        {page === 'queue' && (
+          <QueuePage token={token} user={user} toast={toast} onMatchFound={onMatchFound} />
+        )}
+
+        {page === 'solve-practice' && selectedProblem && (
+          <SolveView
+            problem={selectedProblem}
+            token={token}
+            user={user}
+            mode="practice"
+            toast={toast}
+            onBack={() => setPage('problems')}
+            onResult={() => {}}
+          />
+        )}
+          {page === 'leaderboard' && (
+            <div className="content">
+              <LeaderboardPage token={token} user={user} toast={toast} />
+            </div>
+          )}
+        {page === 'solve-match' && selectedProblem && activeMatch && (
+          <SolveView
+            problem={selectedProblem}
+            token={token}
+            user={user}
+            mode="match"
+            matchId={activeMatch.match_id}
+            matchPlayers={activeMatch.players}
+            toast={toast}
+            onBack={() => setPage('home')}
+            onResult={() => {}}
+          />
+        )}
+      </div>
+
+      <Toast toasts={toasts} />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
