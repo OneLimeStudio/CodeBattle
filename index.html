@@ -529,15 +529,47 @@ function ProblemsPage({ token, onSelect, toast }) {
 }
 
 // ── Code Editor + Problem Panel ───────────────────────────────────────────────
-const STARTERS = {
+const PROBLEM_STARTERS = {
+  'Two Sum': {
+    python: `def solve(nums, target):\n    # Return indices of two numbers that add up to target\n    pass\n`,
+    javascript: `function solve(nums, target) {\n    // Return indices of two numbers that add up to target\n}\n`,
+    cpp: `#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Two Sum\n    return 0;\n}\n`,
+    java: `public class Solution {\n    public static void main(String[] args) {\n        // Two Sum\n    }\n}\n`,
+  },
+  'Valid Palindrome': {
+    python: `def solve(s):\n    # Return true if s is a palindrome (alphanumeric only, case-insensitive)\n    pass\n`,
+    javascript: `function solve(s) {\n    // Return true if s is a palindrome (alphanumeric only, case-insensitive)\n}\n`,
+    cpp: `#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Valid Palindrome\n    return 0;\n}\n`,
+    java: `public class Solution {\n    public static void main(String[] args) {\n        // Valid Palindrome\n    }\n}\n`,
+  },
+  'Maximum Subarray': {
+    python: `def solve(nums):\n    # Return the largest sum of any contiguous subarray\n    pass\n`,
+    javascript: `function solve(nums) {\n    // Return the largest sum of any contiguous subarray\n}\n`,
+    cpp: `#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Maximum Subarray\n    return 0;\n}\n`,
+    java: `public class Solution {\n    public static void main(String[] args) {\n        // Maximum Subarray\n    }\n}\n`,
+  },
+  'Valid Parentheses': {
+    python: `def solve(s):\n    # Return true if the bracket string is valid\n    pass\n`,
+    javascript: `function solve(s) {\n    // Return true if the bracket string is valid\n}\n`,
+    cpp: `#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Valid Parentheses\n    return 0;\n}\n`,
+    java: `public class Solution {\n    public static void main(String[] args) {\n        // Valid Parentheses\n    }\n}\n`,
+  },
+};
+
+const DEFAULT_STARTERS = {
   python: `def solve():\n    # You can name this function anything\n    pass\n`,
   javascript: `function solve() {\n    // You can name this function anything\n}\n`,
   cpp: `#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write your solution here\n    return 0;\n}\n`,
   java: `public class Solution {\n    public static void main(String[] args) {\n        // Write your solution here\n    }\n}\n`,
 };
 
+function getStarter(problemTitle, lang) {
+  const starters = PROBLEM_STARTERS[problemTitle] || DEFAULT_STARTERS;
+  return starters[lang] || DEFAULT_STARTERS[lang] || '';
+}
+
 function SolveView({ problem, token, user, matchId, matchPlayers, mode, toast, onBack, onResult }) {
-  const [code, setCode] = useState(STARTERS['python']);
+  const [code, setCode] = useState(() => getStarter(problem.title, 'python'));
   const [lang, setLang] = useState('python');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
@@ -546,7 +578,7 @@ function SolveView({ problem, token, user, matchId, matchPlayers, mode, toast, o
   const pollRef = useRef(null);
 
   useEffect(() => {
-    setCode(STARTERS[lang] || '');
+    setCode(getStarter(problem.title, lang));
   }, [lang]);
 
   function startPolling(matchIdToUse) {
@@ -1134,7 +1166,7 @@ function App() {
     </div>
   );
 }
-//dsadasda
+
 ReactDOM.createRoot(document.getElementById('root')).render(<App />);
 </script>
 </body>
