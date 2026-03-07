@@ -85,7 +85,21 @@ def judge_submission(code: str, language: str, match_id: str, test_cases: list):
         raise e
     finally:
         db.close()
+def detect_function_name(code: str) -> str:
+    """Extract the first top-level function name from user code using AST parsing."""
+    import ast
+    try:
+        tree = ast.parse(code)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef):
+                return node.name
+    except SyntaxError:
+        pass
+    return "solution"  # fallback
+
+
 def wrap_python(code: str):
+    fn_name = detect_function_name(code)
     return f"""
 import json
 
@@ -94,11 +108,11 @@ import json
 data = json.loads(input())
 
 if isinstance(data, dict):
-    result = solution(**data)
+    result = {fn_name}(**data)
 elif isinstance(data, list):
-    result = solution(*data)
+    result = {fn_name}(*data)
 else:
-    result = solution(data)
+    result = {fn_name}(data)
 
 print(json.dumps(result))
 """
