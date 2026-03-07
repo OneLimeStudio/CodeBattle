@@ -29,7 +29,9 @@ class MiddleWare(BaseHTTPMiddleware):
         super().__init__(app)
         self.rate_limit_records: Dict[str, float] = defaultdict(float)
     def is_rate_limited(self,client_ip: str):
-
+        if r is None:
+            return False
+    # key = f"rate_limit:{client_ip}"
         key = f"rate_limit:{client_ip}"
         now = time.time()
 
