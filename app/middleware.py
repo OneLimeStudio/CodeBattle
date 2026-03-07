@@ -8,7 +8,7 @@ from typing import Dict
 import redis
 import time
 
-RATE_LIMIT = 5
+RATE_LIMIT = 500
 WINDOW = 10  # seconds
 import os
 
@@ -26,7 +26,7 @@ except Exception as e:
 class MiddleWare(BaseHTTPMiddleware):
     #ok
     def __init__(self, app):
-        super().__init__(app)
+        super().__init__(app) 
         self.rate_limit_records: Dict[str, float] = defaultdict(float)
     def is_rate_limited(self,client_ip: str):
         if r is None:
