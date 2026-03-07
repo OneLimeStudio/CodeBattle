@@ -85,21 +85,7 @@ def judge_submission(code: str, language: str, match_id: str, test_cases: list):
         raise e
     finally:
         db.close()
-def detect_function_name(code: str) -> str:
-    """Extract the first top-level function name from user code using AST parsing."""
-    import ast
-    try:
-        tree = ast.parse(code)
-        for node in ast.walk(tree):
-            if isinstance(node, ast.FunctionDef):
-                return node.name
-    except SyntaxError:
-        pass
-    return "solution"  # fallback
-
-
 def wrap_python(code: str):
-    fn_name = detect_function_name(code)
     return f"""
 import json
 
@@ -108,11 +94,11 @@ import json
 data = json.loads(input())
 
 if isinstance(data, dict):
-    result = {fn_name}(**data)
+    result = solution(**data)
 elif isinstance(data, list):
-    result = {fn_name}(*data)
+    result = solution(*data)
 else:
-    result = {fn_name}(data)
+    result = solution(data)
 
 print(json.dumps(result))
 """
@@ -218,6 +204,15 @@ def build_command(lang: str, fname: str):
 
 
 def set_resource_limits():
-    resource.setrlimit(resource.RLIMIT_AS,    (256 * 1024 * 1024, 256 * 1024 * 1024))
-    resource.setrlimit(resource.RLIMIT_CPU,   (5, 5))
-    resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))  # BUG FIX 6: 32 breaks tempfile itself
+    try:
+        resource.setrlimit(resource.RLIMIT_AS,    (256 * 1024 * 1024, 256 * 1024 * 1024))
+    except (ValueError, resource.error):
+        pass
+    try:
+        resource.setrlimit(resource.RLIMIT_CPU,   (5, 5))
+    except (ValueError, resource.error):
+        pass
+    try:
+        resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
+    except (ValueError, resource.error):
+        pass
