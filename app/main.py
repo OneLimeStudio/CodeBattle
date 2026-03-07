@@ -10,6 +10,8 @@ from .encrypt import hash_password, verify_password
 from .schemas import SubmissionRequest, UserCreate, LoginRequest
 from .worker import task
 from typing import Optional
+from .middleware import MiddleWare
+
 
 lock = Lock()
 default_elo = 1000
@@ -17,9 +19,9 @@ app = FastAPI()
 matched_players = {}
 a = {}
 threshold = 200
-
+app.add_middleware(MiddleWare)
 from fastapi.middleware.cors import CORSMiddleware
-
+# @app.get("/")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -187,6 +189,10 @@ def submit(
     db: Session = Depends(get_db)
 ):
     match = db.query(models.Match).filter(models.Match.id == id).first()
+    if not match:
+        raise HTTPException(status_code=404, detail="Match not found")
+    if match.status == "finished":
+        raise HTTPException(status_code=400, detail="Match already finished")
     if match.status == "finished":
         raise HTTPException(status_code=400, detail="Match already finished")
     if not match:
@@ -250,7 +256,7 @@ async def leave_queue(user_id: str = Depends(get_current_user)):
 @app.get("/leaderboard")
 def get_leaderboard(db: Session = Depends(get_db)):
     users = db.query(models.User).order_by(models.User.elo.desc()).all()
-    return users
+    return [{"id": str(u.id), "name": u.name, "elo": u.elo} for u in users]
 
 
 @app.post("/practice/{problem_id}/submit")
@@ -271,7 +277,7 @@ def practice_submit(
     db.add(match)
     db.commit()
     db.refresh(match)
-
+    
     task.judge_submission.delay(req.code, req.language, str(match.id), problem.test_cases)
     return {
         "message": "Submission received",

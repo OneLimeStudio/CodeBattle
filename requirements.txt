@@ -8,3 +8,4 @@ PyJWT
 bcrypt
 celery
 redis
+starlette
