@@ -85,23 +85,23 @@ def judge_submission(code: str, language: str, match_id: str, test_cases: list):
         raise e
     finally:
         db.close()
-def wrap_python(code, tc_input):
-    wrapper = f"""
+def wrap_python(code: str):
+    return f"""
 import json
-data = json.loads(input())
 
 {code}
 
-result = None
+data = json.loads(input())
 
 if isinstance(data, dict):
-    result = Solution().solve(**data) if 'Solution' in globals() else solve(**data)
+    result = solution(**data)
+elif isinstance(data, list):
+    result = solution(*data)
 else:
-    result = Solution().solve(*data) if 'Solution' in globals() else solve(*data)
+    result = solution(data)
 
 print(json.dumps(result))
 """
-    return wrapper
 def run_in_sandbox(code: str, lang: str, stdin: str, expected) -> dict:
 
     with tempfile.NamedTemporaryFile(suffix=lang_suffix(lang), mode='w', delete=False) as f:
