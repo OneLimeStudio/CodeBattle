@@ -167,6 +167,8 @@ def run_in_sandbox(code: str, lang: str, stdin: str, expected) -> dict:
             code = wrap_python(code)
         elif lang == "javascript":
             code = wrap_javascript(code)
+        f.write(code)
+        fname = f.name
 
     try:
         cmd = build_command(lang, fname)
