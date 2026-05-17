@@ -1,4 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, Header
+from fastapi.responses import FileResponse
+import os
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from .database import SessionLocal
@@ -7,7 +9,7 @@ from uuid import UUID
 from asyncio import Lock
 from .auth import create_token, get_current_user
 from .encrypt import hash_password, verify_password
-from .schemas import SubmissionRequest, UserCreate, LoginRequest
+from .schemas import SubmissionRequest, UserCreate, LoginRequest, ProblemCreate, ProblemUpdate
 from .worker import task
 from typing import Optional
 from .middleware import MiddleWare
@@ -25,10 +27,14 @@ from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.get("/")
+def read_root():
+    return FileResponse(os.path.join(os.path.dirname(__file__), "index.html"))
 
 def get_db():
     db = SessionLocal()
@@ -99,9 +105,66 @@ def list_problems(db: Session = Depends(get_db)):
             "title": p.title,
             "description": p.description,
             "difficulty": p.difficulty,
+            "test_cases": [{"input": tc.input, "output": tc.output, "is_hidden": tc.is_hidden} for tc in p.test_cases]
         }
         for p in problems
     ]
+
+@app.post("/problems")
+def create_problem(body: ProblemCreate, user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
+    # Assuming any authenticated user can do this for now, or check for admin
+    problem = models.Problem(
+        title=body.title,
+        description=body.description,
+        difficulty=body.difficulty
+    )
+    for tc in body.test_cases:
+        test_case = models.TestCase(
+            input=tc.get("input", {}),
+            output=tc.get("output", None),
+            is_hidden=tc.get("is_hidden", 0)
+        )
+        problem.test_cases.append(test_case)
+    db.add(problem)
+    db.commit()
+    db.refresh(problem)
+    return {"id": str(problem.id), "title": problem.title}
+
+@app.put("/problems/{id}")
+def update_problem(id: UUID, body: ProblemUpdate, user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
+    problem = db.query(models.Problem).filter(models.Problem.id == id).first()
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    
+    if body.title is not None:
+        problem.title = body.title
+    if body.description is not None:
+        problem.description = body.description
+    if body.difficulty is not None:
+        problem.difficulty = body.difficulty
+    if body.test_cases is not None:
+        db.query(models.TestCase).filter(models.TestCase.problem_id == id).delete()
+        for tc in body.test_cases:
+            test_case = models.TestCase(
+                problem_id=id,
+                input=tc.get("input", {}),
+                output=tc.get("output", None),
+                is_hidden=tc.get("is_hidden", 0)
+            )
+            db.add(test_case)
+        
+    db.commit()
+    db.refresh(problem)
+    return {"message": "Problem updated successfully"}
+
+@app.delete("/problems/{id}")
+def delete_problem(id: UUID, user_id: str = Depends(get_current_user), db: Session = Depends(get_db)):
+    problem = db.query(models.Problem).filter(models.Problem.id == id).first()
+    if not problem:
+        raise HTTPException(status_code=404, detail="Problem not found")
+    db.delete(problem)
+    db.commit()
+    return {"message": "Problem deleted"}
 
 
 # ── Match ─────────────────────────────────────────────────────────────────────
@@ -208,7 +271,8 @@ def submit(
     if not problem:
         raise HTTPException(status_code=404, detail="Problem not found")
 
-    task.judge_submission.delay(req.code, req.language, str(match.id), problem.test_cases)
+    tc_list = [{"input": t.input, "output": t.output} for t in problem.test_cases]
+    task.judge_submission.delay(req.code, req.language, str(match.id), tc_list)
     return {
         "message": "Submission received",
         "match_id": str(id),
@@ -284,7 +348,8 @@ def practice_submit(
     db.commit()
     db.refresh(match)
     
-    task.judge_submission.delay(req.code, req.language, str(match.id), problem.test_cases)
+    tc_list = [{"input": t.input, "output": t.output} for t in problem.test_cases]
+    task.judge_submission.delay(req.code, req.language, str(match.id), tc_list)
     return {
         "message": "Submission received",
         "match_id": str(match.id),

@@ -127,14 +127,46 @@ else:
 
 print(json.dumps(result))
 """
+def wrap_javascript(code: str):
+    import re
+    # Look for function name in "function name(...) {" or "const name = (...) => {"
+    match = re.search(r"function\s+([a-zA-Z0-9_]+)\s*\(", code)
+    if not match:
+        match = re.search(r"const\s+([a-zA-Z0-9_]+)\s*=\s*(async\s+)?\(", code)
+    
+    fn_name = match.group(1) if match else None
+
+    if fn_name is None:
+        return f"""
+const fs = require('fs');
+const _input_data = JSON.parse(fs.readFileSync(0, 'utf8'));
+// Mock global input
+global.input = () => JSON.stringify(_input_data);
+{code}
+"""
+    else:
+        return f"""
+{code}
+const fs = require('fs');
+const data = JSON.parse(fs.readFileSync(0, 'utf8'));
+let result;
+if (typeof data === 'object' && !Array.isArray(data)) {{
+    result = {fn_name}(data);
+}} else if (Array.isArray(data)) {{
+    result = {fn_name}(...data);
+}} else {{
+    result = {fn_name}(data);
+}}
+process.stdout.write(JSON.stringify(result));
+"""
+
 def run_in_sandbox(code: str, lang: str, stdin: str, expected) -> dict:
 
     with tempfile.NamedTemporaryFile(suffix=lang_suffix(lang), mode='w', delete=False) as f:
         if lang == "python":
             code = wrap_python(code)
-
-        f.write(code)
-        fname = f.name
+        elif lang == "javascript":
+            code = wrap_javascript(code)
 
     try:
         cmd = build_command(lang, fname)

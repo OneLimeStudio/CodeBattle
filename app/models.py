@@ -20,8 +20,20 @@ class Problem(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
     title = Column(String(100), nullable=False)
     description = Column(Text, nullable=False)
-    test_cases = Column(JSON, nullable=False)  
     difficulty = Column(String(10))  
+    test_cases = relationship("TestCase", back_populates="problem", cascade="all, delete-orphan")
+
+class TestCase(Base):
+    __tablename__ = "test_cases"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
+    problem_id = Column(UUID(as_uuid=True), ForeignKey("problems.id"), nullable=False)
+    input = Column(JSON, nullable=False)
+    output = Column(JSON, nullable=False)
+    is_hidden = Column(Integer, default=0) # 0 for public, 1 for hidden
+    
+    problem = relationship("Problem", back_populates="test_cases")
+
 class Match(Base):
     __tablename__ = "matches"
     

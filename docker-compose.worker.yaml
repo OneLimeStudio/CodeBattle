@@ -1,0 +1,16 @@
+version: "3.9"
+services:
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+
+  worker:
+    build: .
+    command: celery -A app.worker.task:cel worker --loglevel=info
+    restart: always
+    depends_on:
+      - redis
+    env_file: .env

@@ -9,7 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs/loader.min.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -64,6 +64,7 @@
     font-size: 18px; font-weight: 800;
     letter-spacing: -0.5px;
     background: linear-gradient(135deg, var(--accent3), var(--cyan));
+    background-clip: text;
     -webkit-background-clip: text; -webkit-text-fill-color: transparent;
   }
   .nav-logo span { color: var(--red); -webkit-text-fill-color: var(--red); }
@@ -377,9 +378,69 @@
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState, useEffect, useRef, useCallback } = React;
+const { useState, useEffect, useRef, useCallback, useMemo } = React;
 
 const API = 'http://localhost:8000';
+
+const MonacoEditor = ({ value, language, onChange, width, height, theme, readOnly }) => {
+    const editorRef = useRef(null);
+    const monacoInstanceRef = useRef(null);
+    const internalChangeRef = useRef(false);
+    
+    useEffect(() => {
+        if (!window.require) return;
+        window.require.config({ paths: { 'vs': 'https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.46.0/min/vs' }});
+        window.require(['vs/editor/editor.main'], function() {
+            if (editorRef.current && !monacoInstanceRef.current) {
+                monacoInstanceRef.current = window.monaco.editor.create(editorRef.current, {
+                    value: value,
+                    language: language,
+                    theme: theme || 'vs-dark',
+                    automaticLayout: true,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    readOnly: readOnly || false,
+                    fontSize: 13,
+                    fontFamily: 'JetBrains Mono, monospace'
+                });
+                monacoInstanceRef.current.onDidChangeModelContent(() => {
+                    const val = monacoInstanceRef.current.getValue();
+                    internalChangeRef.current = true;
+                    if (onChange) {
+                        onChange(val);
+                    }
+                    setTimeout(() => { internalChangeRef.current = false; }, 10);
+                });
+            }
+        });
+        return () => {
+            if (monacoInstanceRef.current) {
+                monacoInstanceRef.current.dispose();
+                monacoInstanceRef.current = null;
+            }
+        };
+    }, []);
+
+    useEffect(() => {
+        if (monacoInstanceRef.current && !internalChangeRef.current && monacoInstanceRef.current.getValue() !== value) {
+            monacoInstanceRef.current.setValue(value);
+        }
+    }, [value]);
+
+    useEffect(() => {
+        if (monacoInstanceRef.current && window.monaco) {
+            window.monaco.editor.setModelLanguage(monacoInstanceRef.current.getModel(), language);
+        }
+    }, [language]);
+
+    useEffect(() => {
+        if (monacoInstanceRef.current) {
+            monacoInstanceRef.current.updateOptions({ readOnly: readOnly });
+        }
+    }, [readOnly]);
+
+    return <div ref={editorRef} style={{ width: width || '100%', height: height || '100%' }}></div>;
+};
 
 // ── API helper ────────────────────────────────────────────────────────────────
 async function api(method, path, body, token) {
@@ -391,7 +452,15 @@ async function api(method, path, body, token) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.detail || 'Request failed');
+  if (!res.ok) {
+    let msg = data.detail || 'Request failed';
+    if (Array.isArray(msg)) {
+      msg = msg.map(e => `${e.loc.join('.')}: ${e.msg}`).join(', ');
+    } else if (typeof msg === 'object') {
+      msg = JSON.stringify(msg);
+    }
+    throw new Error(msg);
+  }
   return data;
 }
 
@@ -529,15 +598,28 @@ function ProblemsPage({ token, onSelect, toast }) {
 }
 
 // ── Code Editor + Problem Panel ───────────────────────────────────────────────
-const STARTERS = {
-  python: `def solution():\n    # Write your solution here\n    pass\n`,
-  javascript: `function solution() {\n    // Write your solution here\n}\n`,
-  cpp: `#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write your solution here\n    return 0;\n}\n`,
-  java: `public class Solution {\n    public static void main(String[] args) {\n        // Write your solution here\n    }\n}\n`,
-};
+function getStarter(lang, problem) {
+  let params = "";
+  try {
+    if (problem && problem.test_cases && problem.test_cases.length > 0) {
+      const tc = problem.test_cases[0];
+      if (tc.input && typeof tc.input === 'object') {
+        params = Object.keys(tc.input).join(", ");
+      }
+    }
+  } catch (e) {}
+
+  const starters = {
+    python: `def solution(${params}):\n    # Write your solution here\n    pass\n`,
+    javascript: `function solution({${params}}) {\n    // Write your solution here\n}\n`,
+    cpp: `#include <bits/stdc++.h>\nusing namespace std;\n\nint main() {\n    // Write your solution here\n    return 0;\n}\n`,
+    java: `public class Solution {\n    public static void main(String[] args) {\n        // Write your solution here\n    }\n}\n`,
+  };
+  return starters[lang] || starters['python'];
+}
 
 function SolveView({ problem, token, user, matchId, matchPlayers, mode, toast, onBack, onResult }) {
-  const [code, setCode] = useState(STARTERS['python']);
+  const [code, setCode] = useState(() => getStarter('python', problem));
   const [lang, setLang] = useState('python');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
@@ -546,8 +628,8 @@ function SolveView({ problem, token, user, matchId, matchPlayers, mode, toast, o
   const pollRef = useRef(null);
 
   useEffect(() => {
-    setCode(STARTERS[lang] || '');
-  }, [lang]);
+    setCode(getStarter(lang, problem));
+  }, [lang, problem]);
 
   function startPolling(matchIdToUse) {
     let attempts = 0;
@@ -694,20 +776,11 @@ function SolveView({ problem, token, user, matchId, matchPlayers, mode, toast, o
         {/* Code tab */}
         {activeTab === 'code' && (
           <div className="editor-area">
-            <textarea
-              className="code-textarea"
-              value={code}
-              onChange={e => setCode(e.target.value)}
-              spellCheck={false}
-              onKeyDown={e => {
-                if (e.key === 'Tab') {
-                  e.preventDefault();
-                  const s = e.target.selectionStart;
-                  const v = e.target.value;
-                  setCode(v.slice(0, s) + '    ' + v.slice(e.target.selectionEnd));
-                  setTimeout(() => e.target.setSelectionRange(s + 4, s + 4), 0);
-                }
-              }}
+            <MonacoEditor
+                value={code}
+                language={lang}
+                onChange={(val) => setCode(val)}
+                theme="vs-dark"
             />
           </div>
         )}
@@ -1005,6 +1078,155 @@ function HomePage({ user, onNavigate }) {
   );
 }
 
+// ── Admin Panel ───────────────────────────────────────────────────────────────
+function AdminPanel({ token, toast, onNavigate }) {
+  const [problems, setProblems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [editing, setEditing] = useState(null);
+  const [form, setForm] = useState({ title: '', description: '', difficulty: 'Easy', test_cases: '[]' });
+  const [saving, setSaving] = useState(false);
+
+  function load() {
+    setLoading(true);
+    api('GET', '/problems', null, token)
+      .then(setProblems)
+      .catch(e => toast(e.message, 'error'))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => { load(); }, []);
+
+  function edit(p) {
+    setForm({
+      title: p.title,
+      description: p.description,
+      difficulty: p.difficulty,
+      test_cases: JSON.stringify(p.test_cases, null, 2)
+    });
+    setEditing(p);
+  }
+
+  function createNew() {
+    setForm({ title: '', description: '', difficulty: 'Easy', test_cases: '[\n  {\n    "input": {},\n    "output": null\n  }\n]' });
+    setEditing({});
+  }
+
+  async function save() {
+    setSaving(true);
+    try {
+      let tc;
+      try {
+        tc = JSON.parse(form.test_cases);
+      } catch {
+        throw new Error('Test cases must be valid JSON');
+      }
+      
+      const payload = { ...form, test_cases: tc };
+      
+      if (editing && editing.id) {
+        await api('PUT', `/problems/${editing.id}`, payload, token);
+        toast('Problem updated!', 'success');
+      } else {
+        await api('POST', `/problems`, payload, token);
+        toast('Problem created!', 'success');
+      }
+      setEditing(null);
+      load();
+    } catch (e) {
+      toast(e.message, 'error');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function remove(id) {
+    if (!confirm('Are you sure?')) return;
+    try {
+      await api('DELETE', `/problems/${id}`, null, token);
+      toast('Problem deleted', 'success');
+      load();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  }
+
+  if (editing) {
+    return (
+      <div className="content" style={{ padding: 24, display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 20 }}>
+          <div className="page-title">{editing.id ? 'Edit Problem' : 'New Problem'}</div>
+          <div>
+            <button className="btn btn-ghost" onClick={() => setEditing(null)} style={{ marginRight: 8 }}>Cancel</button>
+            <button className="btn btn-primary" onClick={save} disabled={saving}>{saving ? 'Saving...' : 'Save Problem'}</button>
+          </div>
+        </div>
+        
+        <div style={{ display: 'flex', gap: 24, flex: 1, overflow: 'hidden' }}>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16, overflowY: 'auto', paddingRight: 10 }}>
+            <div className="form-group">
+              <label className="form-label">Title</label>
+              <input className="form-input" value={form.title} onChange={e => setForm({...form, title: e.target.value})} />
+            </div>
+            <div className="form-group">
+              <label className="form-label">Difficulty</label>
+              <select className="form-input" value={form.difficulty} onChange={e => setForm({...form, difficulty: e.target.value})}>
+                <option value="Easy">Easy</option>
+                <option value="Medium">Medium</option>
+                <option value="Hard">Hard</option>
+              </select>
+            </div>
+            <div className="form-group" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <label className="form-label">Description</label>
+              <textarea className="form-input" style={{ flex: 1, resize: 'none' }} value={form.description} onChange={e => setForm({...form, description: e.target.value})} />
+            </div>
+          </div>
+          
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <label className="form-label">Test Cases (JSON)</label>
+            <div style={{ flex: 1, border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+              <MonacoEditor 
+                value={form.test_cases}
+                language="json"
+                onChange={val => setForm({...form, test_cases: val})}
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="content" style={{ padding: 24 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div>
+          <div className="page-title">Admin Panel</div>
+          <div className="page-sub">// manage problems</div>
+        </div>
+        <button className="btn btn-primary" onClick={createNew}>+ New Problem</button>
+      </div>
+
+      {loading ? <div style={{ color: 'var(--text3)' }}>Loading...</div> : (
+        <div className="problem-grid">
+          {problems.map((p, i) => (
+            <div key={p.id} className="problem-card" style={{ cursor: 'default' }}>
+              <div className="problem-left">
+                <div className="problem-num">{String(i + 1).padStart(2, '0')}</div>
+                <div className="problem-name">{p.title}</div>
+              </div>
+              <div className="problem-right">
+                <span className={`badge badge-${(p.difficulty||'').toLowerCase()}`}>{p.difficulty}</span>
+                <button className="btn btn-ghost btn-sm" onClick={() => edit(p)}>Edit</button>
+                <button className="btn btn-danger btn-sm" onClick={() => remove(p.id)}>Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main App ──────────────────────────────────────────────────────────────────
 function App() {
   const [token, setToken] = useState(() => localStorage.getItem('cb_token'));
@@ -1074,6 +1296,7 @@ function App() {
                 { key: 'problems', icon: '#', label: 'Problems' },
                 { key: 'queue', icon: '⚔', label: 'Battle' },
                 { key: 'leaderboard', icon: '🏆', label: 'Leaderboard' },
+                { key: 'admin', icon: '⚙', label: 'Admin' },
               ].map(item => (
                 <button key={item.key}
                   className={`sidebar-btn ${page === item.key ? 'active' : ''}`}
@@ -1115,6 +1338,10 @@ function App() {
               <LeaderboardPage token={token} user={user} toast={toast} />
             </div>
           )}
+
+        {page === 'admin' && (
+          <AdminPanel token={token} toast={toast} onNavigate={setPage} />
+        )}
         {page === 'solve-match' && selectedProblem && activeMatch && (
           <SolveView
             problem={selectedProblem}
